@@ -1,0 +1,134 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Catch-all default block: deny everything by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Primitive Global Helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isVerifiedUser() {
+      return isSignedIn();
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Helper to check group membership (Master Gate pattern)
+    function isGroupMember(groupId) {
+      return isVerifiedUser() && exists(/databases/$(database)/documents/groups/$(groupId)) &&
+        get(/databases/$(database)/documents/groups/$(groupId)).data.members.hasAny([request.auth.uid]);
+    }
+
+    // 1. Users collection
+    match /users/{userId} {
+      allow get: if isVerifiedUser() && isValidId(userId);
+      allow list: if isVerifiedUser();
+      allow create: if isVerifiedUser() && isValidId(userId) && userId == request.auth.uid && isValidUser(incoming());
+      allow update: if isVerifiedUser() && isValidId(userId) && userId == request.auth.uid && isValidUser(incoming()) &&
+                    incoming().uid == existing().uid &&
+                    incoming().email == existing().email;
+      allow delete: if false;
+    }
+
+    function isValidUser(data) {
+      return data.uid == request.auth.uid &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
+             data.email is string && data.email.size() <= 150 &&
+             (data.photoURL == null || (data.photoURL is string && data.photoURL.size() <= 500)) &&
+             (data.upiId == null || (data.upiId is string && data.upiId.size() <= 150));
+    }
+
+    // 2. Groups collection
+    match /groups/{groupId} {
+      allow get: if isVerifiedUser() && isValidId(groupId) && (
+        resource.data.members.hasAny([request.auth.uid])
+      );
+      allow list: if isVerifiedUser() && resource.data.members.hasAny([request.auth.uid]);
+      allow create: if isVerifiedUser() && isValidId(groupId) && isValidGroup(incoming()) && incoming().createdBy == request.auth.uid;
+      allow update: if isVerifiedUser() && isValidId(groupId) && isGroupMember(groupId) && isValidGroup(incoming()) &&
+                    incoming().id == existing().id &&
+                    incoming().createdBy == existing().createdBy;
+      allow delete: if isVerifiedUser() && isValidId(groupId) && existing().createdBy == request.auth.uid;
+    }
+
+    function isValidGroup(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
+             data.createdBy is string &&
+             data.members is list && data.members.size() > 0 && data.members.size() <= 50 &&
+             data.members[0] is string;
+    }
+
+    // 3. Expenses subcollection
+    match /groups/{groupId}/expenses/{expenseId} {
+      allow get: if isVerifiedUser() && isValidId(groupId) && isValidId(expenseId) && isGroupMember(groupId);
+      allow list: if isVerifiedUser() && isValidId(groupId) && isGroupMember(groupId);
+      allow create: if isVerifiedUser() && isValidId(groupId) && isValidId(expenseId) && isGroupMember(groupId) && isValidExpense(incoming());
+      allow update: if isVerifiedUser() && isValidId(groupId) && isValidId(expenseId) && isGroupMember(groupId) && isValidExpense(incoming()) &&
+                    incoming().id == existing().id &&
+                    incoming().groupId == existing().groupId;
+      allow delete: if isVerifiedUser() && isValidId(groupId) && isValidId(expenseId) && isGroupMember(groupId);
+    }
+
+    function isValidExpense(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.groupId is string && data.groupId.size() <= 128 &&
+             data.title is string && data.title.size() > 0 && data.title.size() <= 150 &&
+             data.amount is number && data.amount > 0 &&
+             data.paidBy is string &&
+             data.splitType is string && (data.splitType == 'equal' || data.splitType == 'exact' || data.splitType == 'percentage');
+    }
+
+    // 4. Settlements subcollection
+    match /groups/{groupId}/settlements/{settlementId} {
+      allow get: if isVerifiedUser() && isValidId(groupId) && isValidId(settlementId) && isGroupMember(groupId);
+      allow list: if isVerifiedUser() && isValidId(groupId) && isGroupMember(groupId);
+      allow create: if isVerifiedUser() && isValidId(groupId) && isValidId(settlementId) && isGroupMember(groupId) && isValidSettlement(incoming());
+      allow update: if isVerifiedUser() && isValidId(groupId) && isValidId(settlementId) && isGroupMember(groupId) && isValidSettlement(incoming()) &&
+                    incoming().id == existing().id &&
+                    incoming().groupId == existing().groupId;
+      allow delete: if isVerifiedUser() && isValidId(groupId) && isValidId(settlementId) && isGroupMember(groupId);
+    }
+
+    function isValidSettlement(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.groupId is string && data.groupId.size() <= 128 &&
+             data.fromUid is string &&
+             data.toUid is string &&
+             data.amount is number && data.amount > 0 &&
+             data.status is string && (data.status == 'pending' || data.status == 'settled');
+    }
+
+    // 5. Activities subcollection
+    match /groups/{groupId}/activities/{activityId} {
+      allow get: if isVerifiedUser() && isValidId(groupId) && isValidId(activityId) && isGroupMember(groupId);
+      allow list: if isVerifiedUser() && isValidId(groupId) && isGroupMember(groupId);
+      allow create: if isVerifiedUser() && isValidId(groupId) && isValidId(activityId) && isGroupMember(groupId) && isValidActivity(incoming());
+      allow update: if false; // Activities are write-once audit logs!
+      allow delete: if false;
+    }
+
+    function isValidActivity(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.groupId is string && data.groupId.size() <= 128 &&
+             data.category is string &&
+             data.message is string && data.message.size() <= 500 &&
+             data.actorId is string;
+    }
+  }
+}

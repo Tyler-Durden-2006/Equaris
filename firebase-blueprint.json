@@ -1,0 +1,106 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile with information and settings",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "The unique identifier for the user" },
+        "name": { "type": "string", "description": "Display name of the user" },
+        "email": { "type": "string", "description": "Email address of the user" },
+        "photoURL": { "type": "string", "description": "Avatar image URL" },
+        "upiId": { "type": "string", "description": "UPI format string (e.g. parth@upi) for fast payments" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" }
+      },
+      "required": ["uid", "name", "email"]
+    },
+    "Group": {
+      "title": "Group",
+      "description": "Expense sharing group containing friends or roommates",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique group ID" },
+        "name": { "type": "string", "description": "Name of the group e.g. Goa Trip" },
+        "description": { "type": "string", "description": "Brief description of the group" },
+        "createdBy": { "type": "string", "description": "UID of user who created the group" },
+        "members": { "type": "array", "description": "List of user UIDs participating in the group" },
+        "memberNames": { "type": "object", "description": "Map of user UIDs to their display names for fast offline access" },
+        "budget": { "type": "number", "description": "Total monthly or event budget allocation" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" }
+      },
+      "required": ["id", "name", "createdBy", "members"]
+    },
+    "Expense": {
+      "title": "Expense",
+      "description": "An expense logged within a specific group",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique expense ID" },
+        "groupId": { "type": "string", "description": "The parent group ID" },
+        "title": { "type": "string", "description": "Short description of expense" },
+        "amount": { "type": "number", "description": "Total money spent" },
+        "paidBy": { "type": "string", "description": "The user UID who fronted the expense" },
+        "category": { "type": "string", "description": "e.g., Food, Travel, Rent, Entertainment, Others" },
+        "date": { "type": "string", "description": "The invoice date (YYYY-MM-DD)" },
+        "notes": { "type": "string", "description": "Optional notes or extra remarks" },
+        "receiptUrl": { "type": "string", "description": "Optional URL to uploaded receipt image" },
+        "splitType": { "type": "string", "description": "Method of division (equal, exact, percentage)" },
+        "splits": { "type": "array", "description": "Individual share configuration mapping member UIDs to split amount details" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp when logged" }
+      },
+      "required": ["id", "groupId", "title", "amount", "paidBy", "splitType"]
+    },
+    "Settlement": {
+      "title": "Settlement",
+      "description": "Settlement or reimbursement status between group members",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique settlement ID" },
+        "groupId": { "type": "string", "description": "Parent group ID" },
+        "fromUid": { "type": "string", "description": "Sender UID who owes money" },
+        "toUid": { "type": "string", "description": "Receiver UID who gets repaid" },
+        "amount": { "type": "number", "description": "The amount settled in INR" },
+        "status": { "type": "string", "description": "current state (pending, settled)" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "settledAt": { "type": "string", "format": "date-time", "description": "Timestamp of settlement closure" }
+      },
+      "required": ["id", "groupId", "fromUid", "toUid", "amount", "status"]
+    },
+    "Activity": {
+      "title": "Activity",
+      "description": "Interactive transactional log for group audit feeds",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Event item ID" },
+        "groupId": { "type": "string", "description": "Group context ID" },
+        "category": { "type": "string", "description": "e.g., expense_added, group_created, settlement_marked" },
+        "message": { "type": "string", "description": "Readable log message in English" },
+        "actorId": { "type": "string", "description": "The trigger UID" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "groupId", "category", "message", "actorId"]
+    }
+  },
+  "firestore": {
+    "users": {
+      "schema": "User",
+      "description": "User profile nodes mapped by firebase auth UID"
+    },
+    "groups": {
+      "schema": "Group",
+      "description": "Core group documents contains overall data"
+    },
+    "groups/{groupId}/expenses": {
+      "schema": "Expense",
+      "description": "Expenses subcollection for scalability inside a group"
+    },
+    "groups/{groupId}/settlements": {
+      "schema": "Settlement",
+      "description": "Subcollection to track actual transfers and balance sheets"
+    },
+    "groups/{groupId}/activities": {
+      "schema": "Activity",
+      "description": "Subcollection storing real-time audit event timeline of changes"
+    }
+  }
+}

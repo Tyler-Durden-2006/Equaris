@@ -1,0 +1,6 @@
+{
+  "name": "Dispute",
+  "description": "Shared expenses, settled instantly. A premium expense-sharing platform with smart settlement suggestions, instant UPI QR codes, OCR receipt parsing, and budgeting.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
