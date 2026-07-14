@@ -6,6 +6,7 @@
 import React, { useState } from "react";
 import { useApp } from "../context/AppContext";
 import { logoutUser } from "../lib/firebase";
+import { cn } from "@/lib/utils";
 import {
   User,
   LogOut,
@@ -16,10 +17,8 @@ import {
   CreditCard,
   Layers,
   Menu,
-  Sun,
-  Moon,
-  Scale,
 } from "lucide-react";
+import { EquarisLogo } from "./EquarisLogo";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -51,7 +50,7 @@ const LINKS = [
 ];
 
 export const Navbar: React.FC = () => {
-  const { user, profile, currentRoute, navigate, theme, setTheme } = useApp();
+  const { user, profile, currentRoute, navigate } = useApp();
   const [sheetOpen, setSheetOpen] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
@@ -70,8 +69,6 @@ export const Navbar: React.FC = () => {
     setSheetOpen(false);
   };
 
-  const toggleTheme = () => setTheme(theme === "dark" ? "light" : "dark");
-
   const doLogout = async () => {
     setShowLogoutConfirm(false);
     if (localStorage.getItem("dispute_mock_auth") === "true") {
@@ -83,18 +80,13 @@ export const Navbar: React.FC = () => {
     }
   };
 
-  const Brand = ({ onClick }: { onClick?: () => void }) => (
+  const Brand = ({ onClick, className }: { onClick?: () => void; className?: string }) => (
     <button
       onClick={onClick}
-      className="group flex cursor-pointer select-none items-center gap-2 outline-none"
+      className={cn("group flex cursor-pointer select-none items-center gap-2.5 outline-none", className)}
     >
-      <span className="flex size-8 items-center justify-center rounded-lg bg-primary font-heading text-lg font-bold text-primary-foreground transition-transform group-hover:scale-105">
-        E
-      </span>
-      <span className="flex items-center gap-1.5 font-heading text-xl font-bold tracking-tight">
-        Equaris
-        <Scale className="size-4 text-muted-foreground" />
-      </span>
+      <EquarisLogo className="h-7 w-auto shrink-0 transition-transform group-hover:scale-105" />
+      <span className="font-heading text-xl font-bold tracking-tight">Equaris</span>
     </button>
   );
 
@@ -109,11 +101,12 @@ export const Navbar: React.FC = () => {
             id={`nav-${link.label.toLowerCase()}`}
             onClick={() => go(link.path)}
             aria-current={active ? "page" : undefined}
-            className={`flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring ${
+            className={cn(
+              "flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-sidebar-ring",
               active
-                ? "bg-primary/10 text-primary"
-                : "text-muted-foreground hover:bg-accent hover:text-foreground"
-            }`}
+                ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                : "text-sidebar-foreground/75 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground"
+            )}
           >
             <Icon className="size-4 shrink-0" />
             {link.label}
@@ -124,18 +117,20 @@ export const Navbar: React.FC = () => {
   );
 
   const UserFooter = () => (
-    <div className="flex items-center justify-between gap-2 border-t pt-4">
+    <div className="flex items-center justify-between gap-2 border-t border-sidebar-border pt-4">
       <button
         onClick={() => go("/profile")}
-        className="-m-1 flex min-w-0 cursor-pointer items-center gap-3 rounded-lg p-1 outline-none transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring"
+        className="-m-1 flex min-w-0 cursor-pointer items-center gap-3 rounded-lg p-1 outline-none transition-colors hover:bg-sidebar-accent/60 focus-visible:ring-2 focus-visible:ring-sidebar-ring"
       >
         <Avatar className="size-9 shrink-0">
           {displayPhoto && <AvatarImage src={displayPhoto} alt={displayName} referrerPolicy="no-referrer" />}
-          <AvatarFallback className="text-xs font-semibold uppercase">{avatarInitial}</AvatarFallback>
+          <AvatarFallback className="bg-sidebar-accent text-xs font-semibold uppercase text-sidebar-accent-foreground">
+            {avatarInitial}
+          </AvatarFallback>
         </Avatar>
         <span className="flex min-w-0 flex-col text-left">
-          <span className="truncate text-xs font-semibold leading-tight">{displayName}</span>
-          <span className="truncate font-mono text-[10px] leading-tight text-muted-foreground">{displayEmail}</span>
+          <span className="truncate text-xs font-semibold leading-tight text-sidebar-foreground">{displayName}</span>
+          <span className="truncate font-mono text-[10px] leading-tight text-sidebar-foreground/55">{displayEmail}</span>
         </span>
       </button>
       <Button
@@ -144,7 +139,7 @@ export const Navbar: React.FC = () => {
         size="icon-sm"
         onClick={() => setShowLogoutConfirm(true)}
         aria-label="Sign out"
-        className="shrink-0 cursor-pointer text-muted-foreground hover:text-destructive"
+        className="shrink-0 cursor-pointer text-sidebar-foreground/70 hover:bg-white/10 hover:text-white"
       >
         <LogOut />
       </Button>
@@ -156,27 +151,15 @@ export const Navbar: React.FC = () => {
       {/* DESKTOP SIDEBAR */}
       <aside className="sticky top-0 hidden min-h-screen w-64 shrink-0 flex-col justify-between border-r border-sidebar-border bg-sidebar p-6 text-sidebar-foreground md:flex">
         <div className="flex flex-col gap-8">
-          <div className="flex items-center justify-between">
-            <Brand onClick={() => navigate("/dashboard")} />
-            <Button
-              id="desktop-theme-toggle"
-              variant="outline"
-              size="icon-sm"
-              onClick={toggleTheme}
-              aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-              className="cursor-pointer"
-            >
-              {theme === "dark" ? <Sun /> : <Moon />}
-            </Button>
-          </div>
+          <Brand onClick={() => navigate("/dashboard")} />
 
           <NavLinks />
 
-          <div className="flex flex-col gap-1.5 rounded-lg border bg-card p-4">
-            <p className="font-mono text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+          <div className="flex flex-col gap-1.5 rounded-lg border border-sidebar-border bg-sidebar-accent/40 p-4">
+            <p className="font-mono text-[10px] font-semibold uppercase tracking-widest text-sidebar-foreground/60">
               Equaris
             </p>
-            <p className="text-xs leading-relaxed text-muted-foreground">
+            <p className="text-xs leading-relaxed text-sidebar-foreground/80">
               Split clearly. Settle up on the screen in seconds. No awkward reminders.
             </p>
           </div>
@@ -187,40 +170,31 @@ export const Navbar: React.FC = () => {
 
       {/* MOBILE HEADER */}
       <header className="sticky top-0 z-40 flex h-16 w-full items-center justify-between border-b bg-background px-6 md:hidden">
-        <Brand onClick={() => navigate("/dashboard")} />
-        <div className="flex items-center gap-2">
-          <Button
-            id="mobile-theme-toggle"
-            variant="outline"
-            size="icon-sm"
-            onClick={toggleTheme}
-            aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-            className="cursor-pointer"
-          >
-            {theme === "dark" ? <Sun /> : <Moon />}
-          </Button>
+        <Brand onClick={() => navigate("/dashboard")} className="text-primary" />
 
-          <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-            <SheetTrigger
-              render={
-                <Button variant="outline" size="icon-sm" aria-label="Open menu" className="cursor-pointer">
-                  <Menu />
-                </Button>
-              }
-            />
-            <SheetContent side="left" className="w-72 p-6">
-              <SheetHeader className="p-0">
-                <SheetTitle>
-                  <Brand onClick={() => go("/dashboard")} />
-                </SheetTitle>
-              </SheetHeader>
-              <div className="mt-6 flex flex-1 flex-col justify-between">
-                <NavLinks />
-                {user && <UserFooter />}
-              </div>
-            </SheetContent>
-          </Sheet>
-        </div>
+        <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+          <SheetTrigger
+            render={
+              <Button variant="outline" size="icon-sm" aria-label="Open menu" className="cursor-pointer">
+                <Menu />
+              </Button>
+            }
+          />
+          <SheetContent
+            side="left"
+            className="w-72 border-sidebar-border bg-sidebar p-6 text-sidebar-foreground"
+          >
+            <SheetHeader className="p-0">
+              <SheetTitle className="text-sidebar-foreground">
+                <Brand onClick={() => go("/dashboard")} />
+              </SheetTitle>
+            </SheetHeader>
+            <div className="mt-6 flex flex-1 flex-col justify-between">
+              <NavLinks />
+              {user && <UserFooter />}
+            </div>
+          </SheetContent>
+        </Sheet>
       </header>
 
       {/* LOGOUT CONFIRMATION — destructive action → alert-dialog */}

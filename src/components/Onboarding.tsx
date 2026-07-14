@@ -242,16 +242,6 @@ export const Onboarding: React.FC = () => {
         </div>
 
         <div className="flex items-center space-x-2">
-          {/* Light / Dark preference during setup */}
-          <button
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            className={`p-2 rounded-lg border transition-all cursor-pointer ${
-              theme === "dark" ? "border-white/10 hover:bg-white/5 text-yellow-400" : "border-slate-200 hover:bg-slate-100 text-purple-600"
-            }`}
-          >
-            {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-          </button>
-          
           <button
             onClick={() => logoutUser()}
             className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg border text-xs font-mono cursor-pointer transition-colors ${

@@ -82,20 +82,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [activeGroupSettlements, setActiveGroupSettlements] = useState<Settlement[]>([]);
   const [activeGroupActivities, setActiveGroupActivities] = useState<Activity[]>([]);
 
-  // Theme Sync LocalStorage + HTML classes
-  const [theme, setTheme] = useState<"light" | "dark">(() => {
-    const saved = localStorage.getItem("dispute_theme");
-    return (saved === "light" || saved === "dark") ? (saved as "light" | "dark") : "light";
-  });
+  // Single brand theme — the light/dark toggle was removed. `theme` is fixed to
+  // "light" and setTheme is a no-op so any legacy callers stay harmless.
+  const theme = "light" as const;
+  const setTheme = (_t: "light" | "dark") => {};
 
   useEffect(() => {
-    localStorage.setItem("dispute_theme", theme);
-    if (theme === "dark") {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
-  }, [theme]);
+    document.documentElement.classList.remove("dark");
+  }, []);
 
   // Simple state routing history handling
   useEffect(() => {
@@ -168,9 +162,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             if (docSnap.exists()) {
               const data = docSnap.data() as UserProfile;
               setProfile(data);
-              if (data.themePreference) {
-                setTheme(data.themePreference);
-              }
             } else {
               // Brand-new account: create an empty profile with isOnboarded = false
               // so Onboarding is triggered. NO fake/seeded data.
